@@ -1,22 +1,51 @@
-/*global describe, it*/
+/*global describe, it, setTimeout*/
 var arrayChanges = require('../lib/arrayChanges');
 var expect = require('unexpected');
 
 function toArguments() {
     return arguments;
 }
+function promiseArrayChanges(actual, expected, equal, similar) {
+    var isCalled = 0;
+    return expect.promise(function (resolve, reject) {
+       arrayChanges(actual, expected, equal, similar, function (itemDiff) {
+           isCalled += 1;
+           var stack = '';
+
+           // Grab the stack now, in case the callback is called more than once
+           try {
+               throw new Error();
+           } catch (e) {
+               stack = e.stack;
+           }
+
+           setTimeout(function () {
+
+               if (isCalled !== 1) {
+                   try {
+                       throw new Error();
+                   } catch (e) {
+                       return reject('callback called more than once' + stack);
+                   }
+               }
+               resolve(itemDiff);
+           });
+
+       });
+    });
+}
 
 describe('array-changes', function () {
     it('returns an empty change-list when the two arrays are both empty', function () {
-        expect(arrayChanges([], [], function (a, b) {
-            return a === b;
-        }), 'to equal', []);
+        return expect(promiseArrayChanges([], [], function (a, b, callback) {
+            return callback(a === b);
+        }), 'when fulfilled', 'to equal', []);
     });
 
     it('returns a change-list with no changes if the arrays are the same', function () {
-        expect(arrayChanges([0, 1, 2, 3], [0, 1, 2, 3], function (a, b) {
-            return a === b;
-        }), 'to equal', [
+        return expect(promiseArrayChanges([0, 1, 2, 3], [0, 1, 2, 3], function (a, b, aIndex, bIndex, callback) {
+            return callback(a === b);
+        }), 'when fulfilled', 'to satisfy', [
             { type: 'equal', value: 0, expected: 0 },
             { type: 'equal', value: 1, expected: 1 },
             { type: 'equal', value: 2, expected: 2 },
@@ -25,9 +54,9 @@ describe('array-changes', function () {
     });
 
     it('should indicate item removals', function () {
-        expect(arrayChanges([0, 1, 2, 3], [0, 1, 3], function (a, b) {
-            return a === b;
-        }), 'to equal', [
+        return expect(promiseArrayChanges([0, 1, 2, 3], [0, 1, 3], function (a, b, aIndex, bIndex, callback) {
+            return callback(a === b);
+        }), 'when fulfilled', 'to satisfy', [
             { type: 'equal', value: 0, expected: 0 },
             { type: 'equal', value: 1, expected: 1 },
             { type: 'remove', value: 2 },
@@ -36,17 +65,17 @@ describe('array-changes', function () {
     });
 
     it('should indicate item removals at the end', function () {
-        expect(arrayChanges([0], [], function (a, b) {
-            return a === b;
-        }), 'to equal', [
+        return expect(promiseArrayChanges([0], [], function (a, b, aIndex, bIndex, callback) {
+            return callback(a === b);
+        }), 'when fulfilled', 'to equal', [
             { type: 'remove', value: 0, last: true }
         ]);
     });
 
     it('should indicate missing items', function () {
-        expect(arrayChanges([0, 1, 3], [0, 1, 2, 3], function (a, b) {
-            return a === b;
-        }), 'to equal', [
+        return expect(promiseArrayChanges([0, 1, 3], [0, 1, 2, 3], function (a, b, aIndex, bIndex, callback) {
+            return callback(a === b);
+        }), 'when fulfilled', 'to satisfy', [
             { type: 'equal', value: 0, expected: 0 },
             { type: 'equal', value: 1, expected: 1 },
             { type: 'insert', value: 2 },
@@ -55,17 +84,17 @@ describe('array-changes', function () {
     });
 
     it('should indicate a missing item at the end', function () {
-        expect(arrayChanges([], [0], function (a, b) {
-            return a === b;
-        }), 'to equal', [
+        return expect(promiseArrayChanges([], [0], function (a, b, aIndex, bIndex, callback) {
+            return callback(a === b);
+        }), 'when fulfilled', 'to satisfy', [
             { type: 'insert', value: 0, last: true }
         ]);
     });
 
     it('should treat moved items as removed and inserted', function () {
-        expect(arrayChanges([1, 2, 3, 0], [0, 1, 2, 3], function (a, b) {
-            return a === b;
-        }), 'to equal', [
+        return expect(promiseArrayChanges([1, 2, 3, 0], [0, 1, 2, 3], function (a, b, aIndex, bIndex, callback) {
+            return callback(a === b);
+        }), 'when fulfilled', 'to satisfy', [
             { type: 'insert', value: 0, last: false },
             { type: 'equal', value: 1, expected: 1 },
             { type: 'equal', value: 2, expected: 2 },
@@ -75,9 +104,9 @@ describe('array-changes', function () {
     });
 
     it('shows items that are not equal but should be compared against each other as similar', function () {
-        expect(arrayChanges([0, 1, 2, 3], [0, 2, 1, 3], function (a, b) {
-            return a === b;
-        }), 'to equal', [
+        return expect(promiseArrayChanges([0, 1, 2, 3], [0, 2, 1, 3], function (a, b, aIndex, bIndex, callback) {
+            return callback(a === b);
+        }), 'when fulfilled', 'to satisfy', [
             { type: 'equal', value: 0, expected: 0 },
             { type: 'similar', value: 1, expected: 2 },
             { type: 'similar', value: 2, expected: 1 },
@@ -86,7 +115,7 @@ describe('array-changes', function () {
     });
 
     it('allows you to indicate which items should be considered similar', function () {
-        expect(arrayChanges([
+        return expect(promiseArrayChanges([
             { type: 'dog', name: 'Fido' },
             { type: 'dog', name: 'Teddy' },
             { type: 'person', name: 'Sune' },
@@ -99,11 +128,11 @@ describe('array-changes', function () {
             { type: 'person', name: 'Andreas' },
             { type: 'dog', name: 'Charlie' },
             { type: 'dog', name: 'Sam' }
-        ], function (a, b) {
-            return a.type === b.type && a.name === b.name;
-        }, function (a, b) {
-            return a.type === b.type;
-        }), 'to equal', [
+        ], function (a, b, aIndex, bIndex, callback) {
+            return callback(a.type === b.type && a.name === b.name);
+        }, function (a, b, aIndex, bIndex, callback) {
+            return callback(a.type === b.type);
+        }), 'when fulfilled', 'to satisfy', [
             {
                 type: 'equal',
                 value: { type: 'dog', name: 'Fido' },
@@ -138,13 +167,58 @@ describe('array-changes', function () {
     });
 
     it('supports diffing array-like objects', function () {
-        expect(arrayChanges(toArguments(1, 2, 5), toArguments(3, 4), function (a, b) {
-            return a === b;
-        }), 'to equal', [
+        return expect(promiseArrayChanges(toArguments(1, 2, 5), toArguments(3, 4), function (a, b, aIndex, bIndex, callback) {
+            return callback(a === b);
+        }), 'when fulfilled', 'to satisfy', [
             { type: 'insert', value: toArguments( 3, 4 ) },
             { type: 'remove', value: 1 },
             { type: 'similar', value: 2, expected: 4 },
             { type: 'similar', value: 5, last: true, expected: undefined }
+        ]);
+    });
+
+    it('supports diffing spotting non-similar objects', function () {
+
+        return expect(promiseArrayChanges([ { name: 'steve' }, { name: 'monica' }, { name: 'sam' } ],
+            [ { name: 'andreas' }, { name: 'sune' }, { name: 'peter' } ], function (a, b, aIndex, bIndex, callback) {
+            return callback(a === b);
+        }, function (a, b, aIndex, bIndex, callback) {
+            return callback(false); // nothing is similar
+        }), 'when fulfilled', 'to satisfy', [
+            { type: 'similar', value: { name: 'steve' } },  // This feels wrong
+            { type: 'similar', value: { name: 'monica' } },
+            { type: 'similar', value: { name: 'sam' } }
+        ]);
+    });
+
+    it('supports diffing non-matching types', function () {
+        // This test is specifically targeted to exercise the "similar, but not object or string"
+        // part of the algorithm. I believe the type checks should come out of array-changes, and
+        // go back to unexpected (where they came from), as they don't make sense here
+        // What is equal, and what is similar should be a pure decision of the functions passed in,
+        // and nothing to do with the types of the values.
+        return expect(promiseArrayChanges([ true, false, true ],
+            [ { name: 'steve' }, { name: 'monica' }, { name: 'sam' } ], function (a, b, aIndex, bIndex, callback) {
+                return callback(a === b);
+            }, function (a, b, aIndex, bIndex, callback) {
+                return callback(true); // everything is similar
+            }), 'when fulfilled', 'to satisfy', [
+            { type: 'similar', value: true },
+            { type: 'similar', value: false },
+            { type: 'similar', value: true }
+        ]);
+
+    });
+
+    it('matches the example in the readme', function () {
+
+        return expect(promiseArrayChanges([ 1, 2, 4 ], [ 1, 2, 3, 4 ], function (a, b, aIndex, bIndex, callback) {
+            callback(a === b)
+        }, null), 'when fulfilled', 'to satisfy', [
+            { type: 'equal', value: 1 },
+            { type: 'equal', value: 2 },
+            { type: 'insert', value: 3 },
+            { type: 'equal', value: 4 }
         ]);
     });
 });

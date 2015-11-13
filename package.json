@@ -1,6 +1,6 @@
 {
-  "name": "array-changes",
-  "version": "1.0.3",
+  "name": "array-changes-async",
+  "version": "2.0.0",
   "description": "Array diffing",
   "main": "./lib/arrayChanges.js",
   "scripts": {
@@ -20,11 +20,11 @@
   "author": "Sune Simonsen <sss@one.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/unexpectedjs/array-changes/issues"
+    "url": "https://github.com/unexpectedjs/array-changes-async/issues"
   },
-  "homepage": "https://github.com/unexpectedjs/array-changes",
+  "homepage": "https://github.com/bruderstein/array-changes-async",
   "dependencies": {
-    "arraydiff": "0.1.1"
+    "arraydiff-async": "0.2.0"
   },
   "devDependencies": {
     "browserify": "10.2.4",
@@ -33,6 +33,6 @@
     "istanbul": "0.3.17",
     "jshint": "2.7.0",
     "mocha": "2.2.5",
-    "unexpected": "9.2.1"
+    "unexpected": "10.1.0"
   }
 }
