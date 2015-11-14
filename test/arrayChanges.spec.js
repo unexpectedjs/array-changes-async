@@ -106,12 +106,15 @@ describe('array-changes', function () {
     it('shows items that are not equal but should be compared against each other as similar', function () {
         return expect(promiseArrayChanges([0, 1, 2, 3], [0, 2, 1, 3], function (a, b, aIndex, bIndex, callback) {
             return callback(a === b);
+        }, function (a, b, aIndex, bIndex, callback) {
+            callback(true);
         }), 'when fulfilled', 'to satisfy', [
-            { type: 'equal', value: 0, expected: 0 },
-            { type: 'similar', value: 1, expected: 2 },
-            { type: 'similar', value: 2, expected: 1 },
-            { type: 'equal', value: 3, expected: 3, last: true }
-        ]);
+                { type: 'equal', value: 0, expected: 0 },
+                { type: 'similar', value: 1, expected: 2 },
+                { type: 'similar', value: 2, expected: 1 },
+                { type: 'equal', value: 3, expected: 3, last: true }
+            ]
+        );
     });
 
     it('allows you to indicate which items should be considered similar', function () {
@@ -197,6 +200,7 @@ describe('array-changes', function () {
         // go back to unexpected (where they came from), as they don't make sense here
         // What is equal, and what is similar should be a pure decision of the functions passed in,
         // and nothing to do with the types of the values.
+        // UPDATE: The "similar, but not object or string" checks have been removed, this test still works :)
         return expect(promiseArrayChanges([ true, false, true ],
             [ { name: 'steve' }, { name: 'monica' }, { name: 'sam' } ], function (a, b, aIndex, bIndex, callback) {
                 return callback(a === b);
@@ -219,6 +223,26 @@ describe('array-changes', function () {
             { type: 'equal', value: 2 },
             { type: 'insert', value: 3 },
             { type: 'equal', value: 4 }
+        ]);
+    });
+
+    it('marks items as similar only when the similar function reports they are similar', function () {
+
+        return expect(promiseArrayChanges(
+            [ 1, 2.4, /* missing*/  4 ],
+            [ 1, 2,   3,            4.7 ],
+            function (a, b, aIndex, bIndex, callback) {
+            callback(a === b)
+        }, function (a, b, aIndex, bIndex, callback) {
+                if (Math.floor(a) === Math.floor(b)) {
+                    return callback(true);
+                }
+                return callback(false);
+            }), 'when fulfilled', 'to satisfy', [
+            { type: 'equal', value: 1 },
+            { type: 'similar', value: 2.4, expected: 2 },
+            { type: 'insert', value: 3 },
+            { type: 'similar', value: 4, expected: 4.7 }
         ]);
     });
 });
