@@ -1,14 +1,14 @@
-/*global describe, it, setTimeout*/
+/*global describe, it, setTimeout, Symbol*/
 var arrayChanges = require('../lib/arrayChanges');
 var expect = require('unexpected');
 
 function toArguments() {
     return arguments;
 }
-function promiseArrayChanges(actual, expected, equal, similar) {
+function promiseArrayChanges(actual, expected, equal, similar, includeNonNumericalProperties) {
     var isCalled = 0;
     return expect.promise(function (resolve, reject) {
-       arrayChanges(actual, expected, equal, similar, function (itemDiff) {
+       arrayChanges(actual, expected, equal, similar, includeNonNumericalProperties, function (itemDiff) {
            isCalled += 1;
            var stack = '';
 
@@ -35,7 +35,7 @@ function promiseArrayChanges(actual, expected, equal, similar) {
     });
 }
 
-describe('array-changes', function () {
+describe('array-changes-async', function () {
     it('returns an empty change-list when the two arrays are both empty', function () {
         return expect(promiseArrayChanges([], [], function (a, b, callback) {
             return callback(a === b);
@@ -245,4 +245,51 @@ describe('array-changes', function () {
             { type: 'similar', value: 4, expected: 4.7 }
         ]);
     });
+
+    it('should diff arrays that have non-numerical property names', function () {
+        var a = [1, 2, 3];
+        a.foo = 123;
+        a.bar = 456;
+        a.quux = {};
+
+        var b = [1, 2, 3];
+        b.bar = 456;
+        b.baz = 789;
+        b.quux = false;
+        return expect(promiseArrayChanges(a, b, function (a, b, aIndex, bIndex, callback) {
+            callback(a === b);
+        }, function (a, b, aIndex, bIndex, callback) {
+            callback(a === b);
+        }, true), 'when fulfilled', 'to equal', [
+            { type: 'equal', value: 1, expected: 1, actualIndex: 0, expectedIndex: 0 },
+            { type: 'equal', value: 2, expected: 2, actualIndex: 1, expectedIndex: 1 },
+            { type: 'equal', value: 3, expected: 3, actualIndex: 2, expectedIndex: 2 },
+            { type: 'remove', value: 123, actualIndex: 'foo' },
+            { type: 'equal', value: 456, expected: 456, actualIndex: 'bar', expectedIndex: 'bar' },
+            { type: 'similar', value: {}, expected: false, actualIndex: 'quux', expectedIndex: 'quux' },
+            { type: 'insert', value: 789, expectedIndex: 'baz', last: true }
+        ]);
+    });
+
+    if (typeof Symbol !== 'undefined') {
+        it('should diff arrays that have Symbol property names', function () {
+            var aSymbol = Symbol('a');
+            var bSymbol = Symbol('b');
+            var a = [1, 2];
+            a[aSymbol] = 123;
+
+            var b = [1, 2];
+            b[bSymbol] = 456;
+            return expect(promiseArrayChanges(a, b, function (a, b, aIndex, bIndex, callback) {
+                callback(a === b);
+            }, function (a, b, aIndex, bIndex, callback) {
+                callback(a === b);
+            }, true), 'when fulfilled', 'to equal', [
+                { type: 'equal', value: 1, expected: 1, actualIndex: 0, expectedIndex: 0 },
+                { type: 'equal', value: 2, expected: 2, actualIndex: 1, expectedIndex: 1 },
+                { type: 'remove', value: 123, actualIndex: aSymbol },
+                { type: 'insert', value: 456, expectedIndex: bSymbol, last: true }
+            ]);
+        });
+    }
 });
