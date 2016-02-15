@@ -22,11 +22,7 @@ function promiseArrayChanges(actual, expected, equal, similar, includeNonNumeric
            setTimeout(function () {
 
                if (isCalled !== 1) {
-                   try {
-                       throw new Error();
-                   } catch (e) {
-                       return reject('callback called more than once' + stack);
-                   }
+                   return reject('callback called more than once' + stack);
                }
                resolve(itemDiff);
            });
@@ -245,6 +241,25 @@ describe('array-changes-async', function () {
             { type: 'similar', value: 4, expected: 4.7 }
         ]);
     });
+    
+    it('does not provide the value from the expected if the value moves', function () {
+
+        // If the `similar` callback returns false when `equal` returns true, the algorithm
+        // gets the wrong answer, and includes the expected value as `value` in the result
+        // This isn't a problem with the algorithm, as an equal value must be similar,
+        // but this test just checks that for a move operation, we don't get values from the
+        // "wrong" side
+        return expect(promiseArrayChanges(
+            [ 4, 2, 3, 1  ], [ 100, 200, 300, 400 ], function (a, b, aIndex, bIndex, callback){
+                return callback(a * 100 === b);
+            }, function (a, b, aIndex, bIndex, callback) { return callback(a * 100 === b); }),
+            'when fulfilled', 'to satisfy', [
+                { type: 'similar', value: 4, expected: 100 },
+                { type: 'equal', value: 2, expected: 200 },
+                { type: 'equal', value: 3, expected: 300 },
+                { type: 'similar', value: 1, expected: 400 }
+            ]);
+    });
 
     it('should diff arrays that have non-numerical property names', function () {
         var a = [1, 2, 3];
@@ -311,3 +326,4 @@ describe('array-changes-async', function () {
         });
     }
 });
+
