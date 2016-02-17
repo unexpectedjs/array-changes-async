@@ -271,6 +271,24 @@ describe('array-changes-async', function () {
         ]);
     });
 
+    it('should support an array of specific non-numerical keys to diff', function () {
+        var a = [1];
+        a.foo = 123;
+        a.bar = 789;
+
+        var b = [1];
+        a.foo = 456;
+        a.bar = false;
+        return expect(promiseArrayChanges(a, b, function (a, b, aIndex, bIndex, callback) {
+            callback(a === b);
+        }, function (a, b, aIndex, bIndex, callback) {
+            callback(a === b);
+        }, [ 'foo' ]), 'when fulfilled', 'to equal', [
+            { type: 'equal', actualIndex: 0, expectedIndex: 0, value: 1, expected: 1 },
+            { type: 'remove', actualIndex: 'foo', value: 456, last: true }
+        ]);
+    });
+
     if (typeof Symbol !== 'undefined') {
         it('should diff arrays that have Symbol property names', function () {
             var aSymbol = Symbol('a');
