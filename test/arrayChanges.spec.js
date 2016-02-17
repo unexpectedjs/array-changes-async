@@ -213,7 +213,7 @@ describe('array-changes-async', function () {
     it('matches the example in the readme', function () {
 
         return expect(promiseArrayChanges([ 1, 2, 4 ], [ 1, 2, 3, 4 ], function (a, b, aIndex, bIndex, callback) {
-            callback(a === b)
+            callback(a === b);
         }, null), 'when fulfilled', 'to satisfy', [
             { type: 'equal', value: 1 },
             { type: 'equal', value: 2 },
@@ -228,7 +228,7 @@ describe('array-changes-async', function () {
             [ 1, 2.4, /* missing*/  4 ],
             [ 1, 2,   3,            4.7 ],
             function (a, b, aIndex, bIndex, callback) {
-            callback(a === b)
+            callback(a === b);
         }, function (a, b, aIndex, bIndex, callback) {
                 if (Math.floor(a) === Math.floor(b)) {
                     return callback(true);
@@ -241,7 +241,7 @@ describe('array-changes-async', function () {
             { type: 'similar', value: 4, expected: 4.7 }
         ]);
     });
-    
+
     it('does not provide the value from the expected if the value moves', function () {
 
         // If the `similar` callback returns false when `equal` returns true, the algorithm
