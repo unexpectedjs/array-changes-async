@@ -304,6 +304,35 @@ describe('array-changes-async', function () {
         ]);
     });
 
+    it('should report the expectedIndex of equal elements when arrays are identical', function () {
+        var a = [ 1, 2  ];
+        var b = [ 1, 2 ];
+        return expect(promiseArrayChanges(a, b, function (a, b, aIndex, bIndex, callback) {
+                callback(a === b);
+            }, function (a, b, aIndex, bIndex, callback) {
+                callback(a === b);
+            }), 'when fulfilled', 'to satisfy', [
+                { type: 'equal', actualIndex: 0, expectedIndex: 0, value: 1, expected: 1 },
+                { type: 'equal', actualIndex: 1, expectedIndex: 1, value: 2, expected: 2 }
+            ]
+        );
+    });
+    
+    it('should report the expectedIndex of equal elements when items are offset', function () {
+        var a = [ 1, 2  ];
+        var b = [ 0, 1, 2 ];
+        return expect(promiseArrayChanges(a, b, function (a, b, aIndex, bIndex, callback) {
+            callback(a === b);
+        }, function (a, b, aIndex, bIndex, callback) {
+            callback(a === b);
+        }), 'when fulfilled', 'to satisfy', [
+                { type: 'insert', value: 0 },
+                { type: 'equal', actualIndex: 0, expectedIndex: 1, value: 1, expected: 1 },
+                { type: 'equal', actualIndex: 1, expectedIndex: 2, value: 2, expected: 2 }
+        ]
+        );
+    });
+
     if (typeof Symbol !== 'undefined') {
         it('should diff arrays that have Symbol property names', function () {
             var aSymbol = Symbol('a');
