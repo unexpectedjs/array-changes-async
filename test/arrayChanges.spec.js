@@ -87,15 +87,15 @@ describe('array-changes-async', function () {
         ]);
     });
 
-    it('should treat moved items as removed and inserted', function () {
+    it('should indicate moved items with two items', function () {
         return expect(promiseArrayChanges([1, 2, 3, 0], [0, 1, 2, 3], function (a, b, aIndex, bIndex, callback) {
             return callback(a === b);
         }), 'when fulfilled', 'to satisfy', [
-            { type: 'insert', value: 0, last: false },
-            { type: 'equal', value: 1, expected: 1 },
-            { type: 'equal', value: 2, expected: 2 },
-            { type: 'equal', value: 3, expected: 3 },
-            { type: 'remove', value: 0, last: true }
+            { type: 'moveTarget', value: 0, last: false, actualIndex: 3 },
+            { type: 'equal', value: 1, expected: 1, actualIndex: 0, expectedIndex: 1 },
+            { type: 'equal', value: 2, expected: 2, actualIndex: 1, expectedIndex: 2 },
+            { type: 'equal', value: 3, expected: 3, actualIndex: 2, expectedIndex: 3 },
+            { type: 'moveSource', value: 0, actualIndex: 3, last: true }
         ]);
     });
 
@@ -250,14 +250,17 @@ describe('array-changes-async', function () {
         // but this test just checks that for a move operation, we don't get values from the
         // "wrong" side
         return expect(promiseArrayChanges(
-            [ 4, 2, 3, 1  ], [ 100, 200, 300, 400 ], function (a, b, aIndex, bIndex, callback){
+            [ 4, 2, 3, 1 ], [ 100, 200, 300, 400 ], function (a, b, aIndex, bIndex, callback){
                 return callback(a * 100 === b);
             }, function (a, b, aIndex, bIndex, callback) { return callback(a * 100 === b); }),
             'when fulfilled', 'to satisfy', [
-                { type: 'similar', value: 4, expected: 100 },
-                { type: 'equal', value: 2, expected: 200 },
-                { type: 'equal', value: 3, expected: 300 },
-                { type: 'similar', value: 1, expected: 400 }
+                { type: 'moveTarget', actualIndex: 3, value: 1, last: false },
+                { type: 'moveTarget', actualIndex: 1, value: 2, last: false },
+                { type: 'moveTarget', actualIndex: 2, value: 3, last: false },
+                { type: 'equal', actualIndex: 0, value: 4, expected: 400, expectedIndex: 3 },
+                { type: 'moveSource', actualIndex: 1, value: 2 },
+                { type: 'moveSource', actualIndex: 2, value: 3 },
+                { type: 'moveSource', actualIndex: 3, value: 1, last: true }
             ]);
     });
 
